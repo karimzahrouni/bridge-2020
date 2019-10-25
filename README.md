@@ -12,6 +12,8 @@ For Push Test 2 (PT2) this node will receive Spektrum RC signals from the DX-6 o
 This node should check the mode switch for when to go into MANUAL, or default to AUTO if it's not getting a receiver signal from the Spektrum receiver. 
 
 ## Interface control
+Rudder PGN 127245
+
 For PT1, the expected messages on the nm2k bus are heartbeat, ISO address claim, and
 Battery Status PGN: 127508
      Field 1: Battery instance
@@ -34,7 +36,7 @@ Direction Data: 130577
               9: set
              10: drift
 			 
-The bridge node has to put out heartbeat and ISO address claim but need NOT respond to the others for PT1. However, it must relay them to the RPi (generic nm2k frame capture). 
+The bridge node has to put out heartbeat 126993 and ISO address claim 060928 but need NOT respond to the others for PT1. However, it must relay them to the RPi (generic nm2k frame capture). 
 
 ## Applicability
 USNA Sailbot AY20 Hull 14 mod 3 and later.
