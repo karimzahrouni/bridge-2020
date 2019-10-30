@@ -105,3 +105,37 @@ void heartbeat_process(void){
 // else by default, it spits out current rudder command and mainsail command
 // at given interval. 
 
+
+
+
+// /**
+//    rosserial Publisher example adapted for melodic
+//    Prints "hello world!"
+// */
+
+// #include "mbed.h"
+
+// #include "ros.h"
+// #include "std_msgs/String.h"
+
+// ros::NodeHandle nh;
+
+// std_msgs::String str_msg;
+// ros::Publisher chatter("chatter", &str_msg);
+
+// char hello[13] = "hello world!";
+
+// DigitalOut heartbeat(LED1);
+
+// int main(void){
+//   nh.initNode();
+//   nh.advertise(chatter);
+
+//   while(1) {
+//     heartbeat = !heartbeat;
+//     str_msg.data = hello;
+//     chatter.publish(&str_msg);
+//     nh.spinOnce();
+//     wait_ms(1000);
+//   } // while(1)
+// } // main()
