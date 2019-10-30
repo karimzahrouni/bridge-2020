@@ -1,22 +1,28 @@
 /** @file bridge-2020/main.cpp
     @brief Bridge node for AY20 Sailbot Hull 14 mod 3
     D Evangelista, 2019 
+
+    October 2019
+    To support PT1, the bridge node should receive all messages and
+    pass them along to rosserial. Bridge node will eventually also deal
+    with the Spektrum receiver but that's for later. 
 */
 
 #include "mbed.h"
 #include "rtos.h"
-//#include "nmea2k.h"
-//#include "pgn/Pgn060928.h" // ISO address claim
-//#include "pgn/Pgn126993.h" // heartbeat
+#include "nmea2k.h" // use dev branch!
+#include "pgn/iso/Pgn60928.h" // ISO address claim
+#include "pgn/Pgn126993.h" // heartbeat
 //#include "pgn/Pgn127245.h" // later rudder
+#include "hull14mod3.h"
 
-#define __VERSION__ "0.0.0"
+#define BRIDGE_VERSION "14.3.0 PT1"
 
 Serial pc(USBTX,USBRX);
 nmea2k::CANLayer n2k(p30,p29); // used for sending nmea2k messages
 DigitalOut txled(LED1);
 DigitalOut rxled(LED2); 
-unsigned char node_addr = 0x00; // FIX LATER
+unsigned char node_addr = HULL14MOD3_BRIDGE_ADDR; 
 Thread heartbeat_thread;
 //Thread spektrum_thread;
 
@@ -27,14 +33,13 @@ int main(void){
   nmea2k::Frame f;
   nmea2k::PduHeader h;
 
-  pc.printf("Bridge node version %s\r\n",__VERSION__);
-  //  pc.printf("nmea2k version %s\r\n",NMEA2K_VERSION);
+  // startup messages
+  pc.printf("0x%02x:main: Bridge node version %s\r\n",node_addr,BRIDGE_VERSION);
+  pc.printf("0x%02x:main: nmea2k version %s\r\n",node_addr,NMEA2K_VERSION);
 
-  // Later
-  // do ISO address claim
-  // wait
-  
-  // start necessary processes
+  // Assert ISO address and wait
+
+  // start the various processes
   heartbeat_thread.start(&heartbeat_process); 
 
   pc.printf("0x%02x:main: listening for any pgn\r\n",node_addr);
@@ -68,6 +73,7 @@ void heartbeat_process(void){
 
   pc.printf("0x%02x:heartbeat_thread: starting heartbeat_process\r\n",
 	    node_addr); 
+
   while (1){
     h = nmea2k::PduHeader(d.p,d.pgn,node_addr,NMEA2K_BROADCAST); // form header 
     d = nmea2k::Pgn126993(heartbeat_interval*100,c++); // form PGN fields
@@ -93,8 +99,9 @@ void heartbeat_process(void){
 
 
 
+// TODO Later
 // spektrum_process listens for radio inputs
 // if mode is not manual, then be quiet
 // else by default, it spits out current rudder command and mainsail command
 // at given interval. 
-// TODO
+
