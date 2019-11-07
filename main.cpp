@@ -10,16 +10,23 @@
 
 #include "mbed.h"
 #include "rtos.h"
+//#include "ros.h"
+//#include "std_msgs/String.h"
 #include "nmea2k.h" // use dev branch!
 #include "pgn/iso/Pgn60928.h" // ISO address claim
 #include "pgn/Pgn126993.h" // heartbeat
 //#include "pgn/Pgn127245.h" // later rudder
+#include "Spektrum.h"
 #include "hull14mod3.h"
 
 #define BRIDGE_VERSION "14.3.0 PT1"
 
+// ros::NodeHandle nh;
+// std_msgs::String str_msg;
+// ros::Publisher chatter("chatter", &str_msg);
 Serial pc(USBTX,USBRX);
 nmea2k::CANLayer n2k(p30,p29); // used for sending nmea2k messages
+Spektrum rx(p13,p14); 
 DigitalOut txled(LED1);
 DigitalOut rxled(LED2); 
 unsigned char node_addr = HULL14MOD3_BRIDGE_ADDR; 
@@ -33,10 +40,15 @@ int main(void){
   nmea2k::Frame f;
   nmea2k::PduHeader h;
 
+  // TODO startup ROS publisher LATER
+  //nh.initNode();
+  //nh.advertise(chatter);
+  
   // startup messages
   pc.printf("0x%02x:main: Bridge node version %s\r\n",node_addr,BRIDGE_VERSION);
   pc.printf("0x%02x:main: nmea2k version %s\r\n",node_addr,NMEA2K_VERSION);
-
+  pc.printf("0x%02x:main: Spektrum version %s\r\n",node_addr,SPEKTRUM_VERSION);
+  
   // Assert ISO address and wait
 
   // start the various processes
@@ -52,9 +64,16 @@ int main(void){
       for (int i=0; i<f.len; i++)
 	pc.printf("%02x",f.data[i]);
       pc.printf("\r\n");
-      // LATER - pass it to ROS via rosserial
+      
+      // TODO pass NMEA2000 to ROS via rosserial LATER
+      // heartbeat = !heartbeat; // blink ROS activity light
+      // str_msg.data = hello; // form message
+      // chatter.publish(&str_msg); // publish it
+      
       rxled = 0; 
     } // if (n2k.read(f))
+    
+    //nh.spinOnce();
     ThisThread::sleep_for(10); 
   } // while(1)
 } // int main(void)
@@ -104,6 +123,42 @@ void heartbeat_process(void){
 // if mode is not manual, then be quiet
 // else by default, it spits out current rudder command and mainsail command
 // at given interval. 
+// rx.channel[SPEKTRUM_CHANNELS].
+// on DX9 normally 0 is throttle, 3 is rudder. Wheel is ???, mode sw is ???
+// rx.channel values 0-2048 
+// fades is number of fades, valid is if data is valid
+void spektrum_process(void){
+  nmea2k::Frame m;     // holds nmea2k data frame before sending
+  nmea2k::PduHeader h; // ISO11783-3 header information 
+  //nmea2k::Pgn126993 d(6000,0);   // for PGN data fields
+  unsigned int heartbeat_interval=60;
+  unsigned char c=0;           // heartbeat sends a heartbeat counter
+
+  pc.printf("0x%02x:spektrum_thread: starting spektrum_process\r\n",
+	    node_addr); 
+
+  // loop
+  while(1){
+    // if rx.valid
+    // if manual mode
+    // updated commanded rudder, mainsail
+
+    // send rudder via nmea
+    // log rudder via ros because our own transmissions are not recorded?
+    // send mainsail via nmea
+    // log mainsail via ros because our own transmissions are not recorded?
+
+    // wait for loop execution time
+  }
+} // void spektrum_process(void) 
+
+
+
+
+
+
+
+
 
 
 
