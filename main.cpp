@@ -14,8 +14,8 @@
 #include "nmea2k.h" // use dev branch!
 #include "pgn/iso/Pgn60928.h" // ISO address claim
 #include "pgn/Pgn126993.h" // heartbeat
-#include "pgn/Pgn127245.h" // rudder
-#include "Spektrum.h"
+#include "pgn/Pgn127245.h" // rudder **I made a minor change to the 127245 PGN in the nmea2k library I pushed that change
+#include "Spektrum.h"       //       **to the dev branch of the library, might be worth checking to make sure its correct.
 #include "hull14mod3.h"
 
 #define BRIDGE_VERSION "14.3.0 PT1"
