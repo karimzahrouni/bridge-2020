@@ -10,12 +10,16 @@
 #include "mbed.h"
 #include "rtos.h"
 //#include "ros.h"
+#include <ros.h>
+#include <std_msgs/String.h>
+#include <std_msgs/Float32.h>
+#include <sensor_msgs/Temperature.h>
 //#include "std_msgs/String.h"
 #include "nmea2k.h" // use dev branch!
 #include "pgn/iso/Pgn60928.h" // ISO address claim
 #include "pgn/Pgn126993.h" // heartbeat
-#include "pgn/Pgn127245.h" // rudder **I made a minor change to the 127245 PGN in the nmea2k library I pushed that change
-#include "Spektrum.h"       //       **to the dev branch of the library, might be worth checking to make sure its correct.
+#include "pgn/Pgn127245.h" // rudder
+#include "Spektrum.h"
 #include "hull14mod3.h"
 
 #define BRIDGE_VERSION "14.3.0 PT1"
@@ -30,12 +34,25 @@ DigitalOut txled(LED1);
 DigitalOut rxled(LED2);
 DigitalOut lifeled(LED3);
 unsigned char node_addr = HULL14MOD3_BRIDGE_ADDR;
+
 Thread heartbeat_thread;
 Thread spektrum_thread;
+Thread ros_thread;
 
 
 void heartbeat_process(void);
 void spektrum_process(void);
+void ros_process(void);
+
+
+//ROS stuff
+ros::NodeHandle  nh;
+std_msgs::String str_msg;
+sensor_msgs::Temperature temp_msg;
+ros::Publisher chatter("chatter", &str_msg);
+ros::Publisher temp_pub("Temperature", &temp_msg);
+ros::Publisher nav_pub("Location", &lat, &lon);
+//this was here before ros::Publisher temp_pub("Temperature", &temp_msg);
 
 
 float RC_1 = 0.0;
@@ -62,6 +79,7 @@ int main(void)
     // start the various processes
     heartbeat_thread.start(&heartbeat_process);
     spektrum_thread.start(&spektrum_process);
+    ros_thread.start(&ros_process);
 
     pc.printf("0x%02x:main: listening for any pgn\r\n",node_addr);
     while (1) {
@@ -194,14 +212,32 @@ void spektrum_process(void)
 } // void spektrum_process(void)
 
 
+void ros_process(void)
+{
 
+    nh.initNode();
+    nh.advertise(chatter);
+    nh.advertise(temp_pub);
 
+    while (1) {
+        
+        // str_msg.data = hello;
+        // chatter.publish( &str_msg );
+        temp_msg.header.stamp = nh.now();
+        temp=5.5;
+        temp_msg.temperature=temp;
+        temp_pub.publish(&temp_msg);
 
+        temp_msg.header.frame_id = "boat";
 
+        temp_msg.temperature = temp;
 
+        temp_pub.publish(&temp_msg);
+        nh.spinOnce();
+        ThisThread::sleep_for(100);
 
-
-
+    }//while(1)
+} // void ros_process(void)
 
 
 // /**
