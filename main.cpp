@@ -13,7 +13,7 @@
 #include <ros.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Float32.h>
-#include <sensor_msgs/Temperature.h>
+#include <sensor_msgs/Temperature.h> //dummy ROS message example. It will be replaced by location, heading, ect.
 //#include "std_msgs/String.h"
 #include "nmea2k.h" // use dev branch!
 #include "pgn/iso/Pgn60928.h" // ISO address claim
