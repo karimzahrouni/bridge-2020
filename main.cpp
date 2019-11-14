@@ -8,13 +8,10 @@
 */
 
 #include "mbed.h"
-#include "rtos.h"
-//#include "ros.h"
 #include <ros.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Float32.h>
-#include <sensor_msgs/Temperature.h> //dummy ROS message example. It will be replaced by location, heading, ect.
-//#include "std_msgs/String.h"
+#include <sensor_msgs/NavSatFix.h>
 #include "nmea2k.h" // use dev branch!
 #include "pgn/iso/Pgn60928.h" // ISO address claim
 #include "pgn/Pgn126993.h" // heartbeat
@@ -215,59 +212,29 @@ void spektrum_process(void)
 void ros_process(void)
 {
 
-    nh.initNode();
-    nh.advertise(chatter);
-    nh.advertise(temp_pub);
+    ros::NodeHandle  nh;
 
-    while (1) {
-        
-        // str_msg.data = hello;
-        // chatter.publish( &str_msg );
-        temp_msg.header.stamp = nh.now();
-        temp=5.5;
-        temp_msg.temperature=temp;
-        temp_pub.publish(&temp_msg);
+    std_msgs::String str_msg;
+    sensor_msgs::NavSatFix gps_msg;
+    ros::Publisher gps_pub("GPS: Lat,Long,Alt", &gps_msg); //put in variable names here
 
-        temp_msg.header.frame_id = "boat";
+        nh.initNode();
+        nh.advertise(gps_pub);
 
-        temp_msg.temperature = temp;
+        while (1) {
+            //led = !led;
+            gps_msg.header.stamp = nh.now();
+            gps_msg.latitude = 3941.34;
+            gps_msg.longitude = 7634.05;
+            gps_msg.altitude = 1.5;
+            gps_pub.publish(&gps_msg);
 
-        temp_pub.publish(&temp_msg);
-        nh.spinOnce();
-        ThisThread::sleep_for(100);
+            gps_pub.publish(&gps_msg);
+            nh.spinOnce();
 
-    }//while(1)
-} // void ros_process(void)
+            ThisThread::sleep_for(5*1000); // wait for loop execution time
+        }
 
 
-// /**
-//    rosserial Publisher example adapted for melodic
-//    Prints "hello world!"
-// */
+    } // void ros_process(void)
 
-// #include "mbed.h"
-
-// #include "ros.h"
-// #include "std_msgs/String.h"
-
-// ros::NodeHandle nh;
-
-// std_msgs::String str_msg;
-// ros::Publisher chatter("chatter", &str_msg);
-
-// char hello[13] = "hello world!";
-
-// DigitalOut heartbeat(LED1);
-
-// int main(void){
-//   nh.initNode();
-//   nh.advertise(chatter);
-
-//   while(1) {
-//     heartbeat = !heartbeat;
-//     str_msg.data = hello;
-//     chatter.publish(&str_msg);
-//     nh.spinOnce();
-//     wait_ms(1000);
-//   } // while(1)
-// } // main()
