@@ -49,13 +49,17 @@ ros::NodeHandle  nh;
 
 std_msgs::String str_msg;
 sensor_msgs::NavSatFix gps_msg;
-sensor_msgs::Imu imu_msg;
+sensor_msgs::Imu Imu_msg;
 ros::Publisher gps_pub("NavSatFix", &gps_msg); //put in variable names here
-ros::Publisher Imu_pub("Imu", &Imu_msg); //put in variable names here
+ros::Publisher Imu_pub("Imu", &Imu_msg);
 ros::Publisher chatter("chatter", &str_msg); //del
 
 char hello[13] = "hello world!"; //del
+
 float yaw = 0.0;
+float lat = 0.0;
+float lon = 0.0;
+float bat = 0.0;
 
 float RC_1 = 0.0;
 float RC_2 = 0.0;
@@ -81,7 +85,7 @@ int main(void)
     // start the various processes
     heartbeat_thread.start(&heartbeat_process);
     spektrum_thread.start(&spektrum_process);
-    ros_thread.start(&ros_process);
+    //ros_thread.start(&ros_process);
 
     pc.printf("0x%02x:main: listening for any pgn\r\n",node_addr);
     while (1) {
@@ -94,14 +98,20 @@ int main(void)
                 pc.printf("%02x",f.data[i]);
             pc.printf("\r\n");
 
-
             //First attempt at taking things from NMEA and putting it on ROS
             if(h.pgn()== 127250) { //see if IMU pgn
-
-                yaw = (0xf.data[1]*(16*16))+(0xf.data[2]*16)+(0xf.data[3]*1); //I'm aware this is wrong. 
-                                                                              //I forgot how to get data out of pgns..
+                yaw = (f.data[2]*100 +f.data[3])/100.0;  //this needs replacing w/ a function that converts hex to dec
+                pc.printf("\r\n yaw: %f \r\n",yaw);                  //I forgot how to get data out of pgns..
             } //if(h.pgn()...
-
+            if(h.pgn()== 129025) { //see if GPS pgn
+                lat = (f.data[2]*100 +f.data[3])/100.0;
+                lon = (f.data[4]*100 +f.data[5])/100.0;
+                pc.printf("\r\n lat: %f lon: %f \r\n",lat, lon);                  //I forgot how to get data out of pgns..
+            } //if(h.pgn()...
+            if(h.pgn()== 127508) { //see if battery pgn
+                bat = (f.data[2]*100 +f.data[3])/100.0;
+                pc.printf("\r\n battery: %f \r\n",bat);                  //I forgot how to get data out of pgns..
+            } //if(h.pgn()...
 
             rxled = 0;
         } // if (n2k.read(f))
@@ -109,6 +119,16 @@ int main(void)
         //nh.spinOnce();
         ThisThread::sleep_for(10);
     } // while(1)
+    //I forgot how to get data out of pgns..
+} //if(h.pgn()...
+
+
+rxled = 0;
+} // if (n2k.read(f))
+
+//nh.spinOnce();
+ThisThread::sleep_for(10);
+} // while(1)
 } // int main(void)
 
 
@@ -227,37 +247,48 @@ void ros_process(void)
     nh.advertise(imu_pub);
 
     while (1) {
-        //led = !led;
-        str_msg.data = hello; //del
-        chatter.publish( &str_msg ); //del
+        nh.initNode();
+        nh.advertise(chatter); //del
+        nh.advertise(gps_pub);
+        nh.advertise(Imu_pub);
 
-        gps_msg.header.stamp = nh.now();
-        gps_msg.latitude = 3941.34;
-        gps_msg.longitude = 7634.05;
-        gps_msg.altitude = 1.5;
-        gps_pub.publish(&gps_msg);
+        while (1) {
+            //led = !led;
+            str_msg.data = hello; //del
+            chatter.publish( &str_msg ); //del
 
-        gps_msg.header.frame_id = "boat";
-        gps_msg.latitude = 3941.34;
-        gps_msg.longitude = 7634.05;
-        gps_msg.altitude = 1.5;
+            //GPS
+            gps_msg.header.stamp = nh.now();
+            gps_msg.latitude = lat;
+            gps_msg.longitude = lon;
+            gps_msg.altitude = 1.5;
+            gps_pub.publish(&gps_msg);
 
-        gps_pub.publish(&gps_msg);
-        ////
-        Imu_msg.header.stamp = nh.now();
-        Imu_msg.orientation = yaw;
-        Imu_pub.publish(&Imu_msg);
+            gps_msg.header.frame_id = "boat";
+            gps_msg.latitude = lat;
+            gps_msg.longitude = lon;
+            gps_msg.altitude = 1.5;
 
-        Imu_msg.header.frame_id = "boat";
-        Imu_msg.orientation = yaw;
+            gps_pub.publish(&gps_msg);
 
-        Imu_pub.publish(&Imu_msg);
+            //IMU
+            Imu_msg.header.stamp = nh.now();
+            Imu_msg.orientation.x = 5;
+            Imu_msg.orientation.y = 10;
+            Imu_msg.orientation.z = yaw;
+            Imu_pub.publish(&Imu_msg);
 
-        nh.spinOnce();
+            Imu_msg.header.frame_id = "boat";
+            Imu_msg.orientation.x = 5;
+            Imu_msg.orientation.y = 10;
+            Imu_msg.orientation.z = yaw;
 
-        wait_ms(1000);
-        //ThisThread::sleep_for(5*1000); // wait for loop execution time
+            Imu_pub.publish(&Imu_msg);
 
-    }
 
-} // void ros_process(void)
+            nh.spinOnce();
+
+            ThisThread::sleep_for(100);
+        }
+
+    } // void ros_process(void)*/
