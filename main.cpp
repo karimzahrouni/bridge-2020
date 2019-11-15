@@ -11,7 +11,9 @@
 #include <ros.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Float64.h>
 #include <sensor_msgs/NavSatFix.h>
+#include <sensor_msgs/Imu.h>
 #include "nmea2k.h" // use dev branch!
 #include "pgn/iso/Pgn60928.h" // ISO address claim
 #include "pgn/Pgn126993.h" // heartbeat
@@ -44,13 +46,16 @@ void ros_process(void);
 
 //ROS stuff
 ros::NodeHandle  nh;
-std_msgs::String str_msg;
-sensor_msgs::Temperature temp_msg;
-ros::Publisher chatter("chatter", &str_msg);
-ros::Publisher temp_pub("Temperature", &temp_msg);
-ros::Publisher nav_pub("Location", &lat, &lon);
-//this was here before ros::Publisher temp_pub("Temperature", &temp_msg);
 
+std_msgs::String str_msg;
+sensor_msgs::NavSatFix gps_msg;
+sensor_msgs::Imu imu_msg;
+ros::Publisher gps_pub("NavSatFix", &gps_msg); //put in variable names here
+ros::Publisher Imu_pub("Imu", &Imu_msg); //put in variable names here
+ros::Publisher chatter("chatter", &str_msg); //del
+
+char hello[13] = "hello world!"; //del
+float yaw = 0.0;
 
 float RC_1 = 0.0;
 float RC_2 = 0.0;
@@ -89,10 +94,14 @@ int main(void)
                 pc.printf("%02x",f.data[i]);
             pc.printf("\r\n");
 
-            // TODO pass NMEA2000 to ROS via rosserial LATER
-            // heartbeat = !heartbeat; // blink ROS activity light
-            // str_msg.data = hello; // form message
-            // chatter.publish(&str_msg); // publish it
+
+            //First attempt at taking things from NMEA and putting it on ROS
+            if(h.pgn()== 127250) { //see if IMU pgn
+
+                yaw = (0xf.data[1]*(16*16))+(0xf.data[2]*16)+(0xf.data[3]*1); //I'm aware this is wrong. 
+                                                                              //I forgot how to get data out of pgns..
+            } //if(h.pgn()...
+
 
             rxled = 0;
         } // if (n2k.read(f))
@@ -212,29 +221,43 @@ void spektrum_process(void)
 void ros_process(void)
 {
 
-    ros::NodeHandle  nh;
+    nh.initNode();
+    nh.advertise(chatter); //del
+    nh.advertise(gps_pub);
+    nh.advertise(imu_pub);
 
-    std_msgs::String str_msg;
-    sensor_msgs::NavSatFix gps_msg;
-    ros::Publisher gps_pub("GPS: Lat,Long,Alt", &gps_msg); //put in variable names here
+    while (1) {
+        //led = !led;
+        str_msg.data = hello; //del
+        chatter.publish( &str_msg ); //del
 
-        nh.initNode();
-        nh.advertise(gps_pub);
+        gps_msg.header.stamp = nh.now();
+        gps_msg.latitude = 3941.34;
+        gps_msg.longitude = 7634.05;
+        gps_msg.altitude = 1.5;
+        gps_pub.publish(&gps_msg);
 
-        while (1) {
-            //led = !led;
-            gps_msg.header.stamp = nh.now();
-            gps_msg.latitude = 3941.34;
-            gps_msg.longitude = 7634.05;
-            gps_msg.altitude = 1.5;
-            gps_pub.publish(&gps_msg);
+        gps_msg.header.frame_id = "boat";
+        gps_msg.latitude = 3941.34;
+        gps_msg.longitude = 7634.05;
+        gps_msg.altitude = 1.5;
 
-            gps_pub.publish(&gps_msg);
-            nh.spinOnce();
+        gps_pub.publish(&gps_msg);
+        ////
+        Imu_msg.header.stamp = nh.now();
+        Imu_msg.orientation = yaw;
+        Imu_pub.publish(&Imu_msg);
 
-            ThisThread::sleep_for(5*1000); // wait for loop execution time
-        }
+        Imu_msg.header.frame_id = "boat";
+        Imu_msg.orientation = yaw;
 
+        Imu_pub.publish(&Imu_msg);
 
-    } // void ros_process(void)
+        nh.spinOnce();
 
+        wait_ms(1000);
+        //ThisThread::sleep_for(5*1000); // wait for loop execution time
+
+    }
+
+} // void ros_process(void)
