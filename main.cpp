@@ -8,12 +8,12 @@
 */
 
 #include "mbed.h"
-#include <ros.h>
-#include <std_msgs/String.h>
+
+/*#include <std_msgs/String.h>
 #include <std_msgs/Float32.h>
-#include <std_msgs/Float64.h>
+#include <std_msgs/Float64.h>           //ROS not working at the moment
 #include <sensor_msgs/NavSatFix.h>
-#include <sensor_msgs/Imu.h>
+#include <sensor_msgs/Imu.h> */
 #include "nmea2k.h" // use dev branch!
 #include "pgn/iso/Pgn60928.h" // ISO address claim
 #include "pgn/Pgn126993.h" // heartbeat
@@ -36,16 +36,16 @@ unsigned char node_addr = HULL14MOD3_BRIDGE_ADDR;
 
 Thread heartbeat_thread;
 Thread spektrum_thread;
-Thread ros_thread;
+//Thread ros_thread;
 
 
 void heartbeat_process(void);
 void spektrum_process(void);
-void ros_process(void);
+//void ros_process(void);
 
 
 //ROS stuff
-ros::NodeHandle  nh;
+/* ros::NodeHandle  nh;
 
 std_msgs::String str_msg;
 sensor_msgs::NavSatFix gps_msg;
@@ -55,7 +55,7 @@ ros::Publisher Imu_pub("Imu", &Imu_msg);
 ros::Publisher chatter("chatter", &str_msg); //del
 
 char hello[13] = "hello world!"; //del
-
+*/
 float yaw = 0.0;
 float lat = 0.0;
 float lon = 0.0;
@@ -86,50 +86,45 @@ int main(void)
     heartbeat_thread.start(&heartbeat_process);
     spektrum_thread.start(&spektrum_process);
     //ros_thread.start(&ros_process);
+    /*
+        pc.printf("0x%02x:main: listening for any pgn\r\n",node_addr);
+        while (1) {
 
-    pc.printf("0x%02x:main: listening for any pgn\r\n",node_addr);
-    while (1) {
+            if (n2k.read(f)) {
+                rxled = 1;
+                h = nmea2k::PduHeader(f.id);
+                pc.printf("0x%02x:main: recieved priority %d, pgn %d, sa 0x%02x, da 0x%02x: 0x",node_addr,h.p(), h.pgn(), h.sa(), h.da());
+                for (int i=0; i<f.len; i++)
+                    pc.printf("%02x",f.data[i]);
+                pc.printf("\r\n");
 
-        if (n2k.read(f)) {
-            rxled = 1;
-            h = nmea2k::PduHeader(f.id);
-            pc.printf("0x%02x:main: recieved priority %d, pgn %d, sa 0x%02x, da 0x%02x: 0x",node_addr,h.p(), h.pgn(), h.sa(), h.da());
-            for (int i=0; i<f.len; i++)
-                pc.printf("%02x",f.data[i]);
-            pc.printf("\r\n");
+                //First attempt at taking things from NMEA and putting it on ROS
+                if(h.pgn()== 127250) { //see if IMU pgn
+                    yaw = (f.data[2]*100 +f.data[3])/100.0;  //this needs replacing w/ a function that converts hex to dec
+                    pc.printf("\r\n yaw: %f \r\n",yaw);                  //I forgot how to get data out of pgns..
+                } //if(h.pgn()...
+                if(h.pgn()== 129025) { //see if GPS pgn
+                    lat = (f.data[2]*100 +f.data[3])/100.0;
+                    lon = (f.data[4]*100 +f.data[5])/100.0;
+                    pc.printf("\r\n lat: %f lon: %f \r\n",lat, lon);                  //I forgot how to get data out of pgns..
+                } //if(h.pgn()...
+                if(h.pgn()== 127508) { //see if battery pgn
+                    bat = (f.data[2]*100 +f.data[3])/100.0;
+                    pc.printf("\r\n battery: %f \r\n",bat);                  //I forgot how to get data out of pgns..
+                } //if(h.pgn()...
 
-            //First attempt at taking things from NMEA and putting it on ROS
-            if(h.pgn()== 127250) { //see if IMU pgn
-                yaw = (f.data[2]*100 +f.data[3])/100.0;  //this needs replacing w/ a function that converts hex to dec
-                pc.printf("\r\n yaw: %f \r\n",yaw);                  //I forgot how to get data out of pgns..
-            } //if(h.pgn()...
-            if(h.pgn()== 129025) { //see if GPS pgn
-                lat = (f.data[2]*100 +f.data[3])/100.0;
-                lon = (f.data[4]*100 +f.data[5])/100.0;
-                pc.printf("\r\n lat: %f lon: %f \r\n",lat, lon);                  //I forgot how to get data out of pgns..
-            } //if(h.pgn()...
-            if(h.pgn()== 127508) { //see if battery pgn
-                bat = (f.data[2]*100 +f.data[3])/100.0;
-                pc.printf("\r\n battery: %f \r\n",bat);                  //I forgot how to get data out of pgns..
-            } //if(h.pgn()...
+                rxled = 0;
+            } // if (n2k.read(f))
 
-            rxled = 0;
-        } // if (n2k.read(f))
-
-        //nh.spinOnce();
-        ThisThread::sleep_for(10);
-    } // while(1)
-    //I forgot how to get data out of pgns..
-} //if(h.pgn()...
+            //nh.spinOnce();
+            ThisThread::sleep_for(1000);
+        } // while(1)
+        *///I forgot how to get data out of pgns..
+}
 
 
-rxled = 0;
-} // if (n2k.read(f))
 
-//nh.spinOnce();
-ThisThread::sleep_for(10);
-} // while(1)
-} // int main(void)
+
 
 
 
@@ -171,74 +166,65 @@ void heartbeat_process(void)
 
 
 
-// TODO Later
-// spektrum_process listens for radio inputs
-// if mode is not manual, then be quiet
-// else by default, it spits out current rudder command and mainsail command
-// at given interval.
-// rx.channel[SPEKTRUM_CHANNELS].
-// on DX9 normally 0 is throttle, 3 is rudder. Wheel is ???, mode sw is ???
-// rx.channel values 0-2048
-// fades is number of fades, valid is if data is valid
+
 void spektrum_process(void)
 {
+
     nmea2k::Frame m;     // holds nmea2k data frame before sending
     nmea2k::PduHeader h; // ISO11783-3 header information
-    nmea2k::Pgn127245 d(0,0,0,0);   // rudder PGN
-    unsigned int spektrum_interval=2;
-    //unsigned char c=0;           // heartbeat sends a heartbeat counter
+    nmea2k::Pgn127245 d(0,0,0,0);   // for PGN data fields
+    int rudder_interval = 1; // nominally at a 1 s interval
 
-    pc.printf("0x%02x:spektrum_thread: starting spektrum_process\r\n",
+    pc.printf("0x%02x:rudder_process: starting Rudder PGN 127245 tx process\r\n",
               node_addr);
+    while (1) {
 
-    // loop
-    while(1) {
-        // if rx.valid
-        // if manual mode
-        // updated commanded rudder, mainsail
-
+        //Spektrum part
         if (rx.valid) {
-            RC_1 = rx.channel[1];
-            RC_2 = rx.channel[2];     //channels will likely change
+            RC_1 = rx.channel[0];
+            //RC_2 = rx.channel[2];     //channels will likely change
         } else {
             pc.printf("RCrudder invalid\r\n");
         }
 
-        rud_cmd = (RC_1/6.77)-5.0;    //puts RC command into degrees
-        mast_cmd = (RC_2/6.77)+39.19;
+       rud_cmd = (RC_1/6.77)-5.0;
+        //rud_cmd = RC_1;    //puts RC command into degrees
+        //mast_cmd = (RC_2/6.77)+39.19;
+        //end spektrum part
 
-        pc.printf("rudder: %.1f, mast: %.1f\n", rud_cmd, mast_cmd);
-        // send rudder via nmea
-        // log rudder via ros because our own transmissions are not recorded?
-        // send mainsail via nmea
-        // log mainsail via ros because our own transmissions are not recorded?
+        txled = 1;
+        d = nmea2k::Pgn127245((uint8_t) 0, // instance
+                              (uint8_t) PGN_127245_DIRECTION_RIGHT, // direction_order?
+                              (int16_t) round(rud_cmd/180.0*NMEA2K_PI*PGN_127245_ANGLE_RES), // angle_order
+                              (int16_t) round(-15.0/180.0*NMEA2K_PI*PGN_127245_ANGLE_RES)); // position
+        h = nmea2k::PduHeader(d.p,d.pgn,node_addr,NMEA2K_BROADCAST); // form header
+        m = nmea2k::Frame(h.id(),d.data(),d.dlen); // assemble message
 
-        h = nmea2k::PduHeader(d.p,d.pgn,node_addr,NMEA2K_BROADCAST);
-        d = nmea2k::Pgn127245(0, // instance
-                              round(mast_cmd*PGN_127245_ANGLE_RES), // not actually the correct place for mast order
-                              round(rud_cmd*PGN_127245_ANGLE_RES), // rudder command
-                              0.0
-                             );
-        m = nmea2k::Frame(h.id(),d.data(),d.dlen);
-        if (n2k.write(m)) {
-            txled = 1;
-            pc.printf("0x%02x:spektrum_thread: sent %s\r\n",
+        //debug("0x%02x:rudder_process: sending data",node_addr);
+        //for (int i=0; i<8; i++){
+        //  debug("%02x",d.data()[i]);
+        //}
+        //debug("\r\n");
+        if (n2k.write(m)) // send it!
+            pc.printf("0x%02x:rudder_process: sent %s, instance %d, direction_order %d, angle_order %3.1f, position %3.1f\r\n",
                       node_addr,
-                      d.name);
-            ThisThread::sleep_for(5);
-            txled = 0;
-        } else
-            pc.printf("0x%02x:spektrum_thread: failed sending %s\r\n",
-                      node_addr,
-                      d.name);
+                      d.name,
+                      d.instance(),
+                      d.direction_order(),
+                      (float) d.angle_order()/PGN_127245_ANGLE_RES*180.0/NMEA2K_PI,
+                      (float) d.position()/PGN_127245_ANGLE_RES*180.0/NMEA2K_PI);
+        else
+            pc.printf("0x%02x:rudder_process: failed sending %s\r\n",
+                      node_addr,d.name);
+        txled = 0;
 
+        ThisThread::sleep_for(rudder_interval*100);
+    } // while(1)
 
-        ThisThread::sleep_for(spektrum_interval*1000); // wait for loop execution time
-    }
 } // void spektrum_process(void)
 
 
-void ros_process(void)
+/* void ros_process(void)
 {
 
     nh.initNode();
@@ -291,4 +277,5 @@ void ros_process(void)
             ThisThread::sleep_for(100);
         }
 
-    } // void ros_process(void)*/
+    } */ // void ros_process(void)
+
