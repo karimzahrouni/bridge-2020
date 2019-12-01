@@ -8,7 +8,7 @@
 */
 
 #include "mbed.h"
-
+#include "rtos.h"
 /*#include <std_msgs/String.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Float64.h>           //ROS not working at the moment
@@ -218,7 +218,7 @@ void spektrum_process(void)
                       node_addr,d.name);
         txled = 0;
 
-        ThisThread::sleep_for(rudder_interval*100);
+        ThisThread::sleep_for(rudder_interval*1000);
     } // while(1)
 
 } // void spektrum_process(void)
