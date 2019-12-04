@@ -8,7 +8,7 @@
 */
 
 #include "mbed.h"
-#include "rtos.h"
+
 /*#include <std_msgs/String.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Float64.h>           //NO ROS
@@ -65,12 +65,14 @@ float RC_1 = 0.0;
 float RC_2 = 0.0;
 float mast_cmd = 0.0;
 float rud_cmd = 0.0;
+float cmnd[2];
+int ii;
 
 int main(void)
 {
-   nmea2k::Frame f;
+    nmea2k::Frame f;
     nmea2k::PduHeader h;
-    nmea2k::Pgn127250 d(0,0,0,0,0);
+
     // TODO startup ROS publisher LATER
     //nh.initNode();
     //nh.advertise(chatter);
@@ -86,38 +88,32 @@ int main(void)
     heartbeat_thread.start(&heartbeat_process);
     spektrum_thread.start(&spektrum_process);
     //ros_thread.start(&ros_process);
-    
+    /*
         pc.printf("0x%02x:main: listening for any pgn\r\n",node_addr);
         while (1) {
 
             if (n2k.read(f)) {
-            h = nmea2k::PduHeader(f.id);
-            if ((h.da() == NMEA2K_BROADCAST) || (h.da() == node_addr))
-                switch(h.pgn()) {
-                    case 127250:
-                        //debug("0x%02x:main: handling Rudder PGN 127245\r\n", node_addr);
-                        //d = PgnParser127245(f);
-                        //d = nmea2k::Pgn127250(f.data);
-                        //debug("0x%02x:main: received data 0x",node_addr);
-                        //for (int i=0; i<8; i++)
-                        //  debug("%02x",d.data()[i]);
-                        //debug("\r\n");
-                        /*pc.printf("0x%02x:main: recieved %s, instance %d, direction_order %d, angle_order %3.1f, position %3.1f\r\n",
-                                  node_addr,
-                                  d.name,
-                                  d.sid(),
-                                  d.heading(),
-                                  (float)d.angle_order()/PGN_127245_ANGLE_RES*180.0/NMEA2K_PI,
-                                  (float)d.position()/PGN_127245_ANGLE_RES*180.0/NMEA2K_PI);*/
+                rxled = 1;
+                h = nmea2k::PduHeader(f.id);
+                pc.printf("0x%02x:main: recieved priority %d, pgn %d, sa 0x%02x, da 0x%02x: 0x",node_addr,h.p(), h.pgn(), h.sa(), h.da());
+                for (int i=0; i<f.len; i++)
+                    pc.printf("%02x",f.data[i]);
+                pc.printf("\r\n");
 
-                        //yaw = (float)d.heading();
-//pc.printf("yaw: %3.1f\r\n",yaw;
-                        break;
-                    default:
-                        pc.printf("0x%02x:main: received unhandled PGN %d\r\n",
-                                  node_addr,h.pgn());
-                } // switch(h.pgn())
-        } // if addressed to us
+                //First attempt at taking things from NMEA and putting it on ROS
+                if(h.pgn()== 127250) { //see if IMU pgn
+                    yaw = (f.data[2]*100 +f.data[3])/100.0;  //this needs replacing w/ a function that converts hex to dec
+                    pc.printf("\r\n yaw: %f \r\n",yaw);                  //I forgot how to get data out of pgns..
+                } //if(h.pgn()...
+                if(h.pgn()== 129025) { //see if GPS pgn
+                    lat = (f.data[2]*100 +f.data[3])/100.0;
+                    lon = (f.data[4]*100 +f.data[5])/100.0;
+                    pc.printf("\r\n lat: %f lon: %f \r\n",lat, lon);                  //I forgot how to get data out of pgns..
+                } //if(h.pgn()...
+                if(h.pgn()== 127508) { //see if battery pgn
+                    bat = (f.data[2]*100 +f.data[3])/100.0;
+                    pc.printf("\r\n battery: %f \r\n",bat);                  //I forgot how to get data out of pgns..
+                } //if(h.pgn()...
 
                 rxled = 0;
             } // if (n2k.read(f))
@@ -125,8 +121,8 @@ int main(void)
             //nh.spinOnce();
             ThisThread::sleep_for(1000);
         } // while(1)
-        //I forgot how to get data out of pgns..
-
+        *///I forgot how to get data out of pgns..
+}
 
 
 
@@ -188,45 +184,48 @@ void spektrum_process(void)
         //Spektrum part
         if (rx.valid) {
             RC_1 = rx.channel[0];
+            RC_2 = rx.channel[7];   
             pc.printf("RC: %f ",RC_1);
-            //RC_2 = rx.channel[2];     //channels will likely change
+            
         } else {
             pc.printf("RCrudder invalid\r\n");
         }
        //(RC_1/6.77)-40.0;
-       rud_cmd = (RC_1/9)-20.0;
-       pc.printf("rudder: %f \r\n",rud_cmd);
+       cmnd[0] = (RC_1/9)-20.0;
+       cmnd[1] = (RC_2/9)-20.0;
+       pc.printf("rudder: %f mast: %f \r\n",cmnd[0],cmnd[1]);
         //rud_cmd = RC_1;    //puts RC command into degrees
         //mast_cmd = (RC_2/6.77)+39.19;
         //end spektrum part
-
-        txled = 1;
-        d = nmea2k::Pgn127245((uint8_t) 0, // instance
-                              (uint8_t) PGN_127245_DIRECTION_RIGHT, // direction_order?
-                              (int16_t) round(rud_cmd/180.0*NMEA2K_PI*PGN_127245_ANGLE_RES), // angle_order
-                              (int16_t) round(-15.0/180.0*NMEA2K_PI*PGN_127245_ANGLE_RES)); // position
-        h = nmea2k::PduHeader(d.p,d.pgn,node_addr,NMEA2K_BROADCAST); // form header
-        m = nmea2k::Frame(h.id(),d.data(),d.dlen); // assemble message
-
-        //debug("0x%02x:rudder_process: sending data",node_addr);
-        //for (int i=0; i<8; i++){
-        //  debug("%02x",d.data()[i]);
-        //}
-        //debug("\r\n");
-        if (n2k.write(m)) // send it!
-            pc.printf("0x%02x:rudder_process: sent %s, instance %d, direction_order %d, angle_order %3.1f, position %3.1f\r\n",
-                      node_addr,
-                      d.name,
-                      d.instance(),
-                      d.direction_order(),
-                      (float) d.angle_order()/PGN_127245_ANGLE_RES*180.0/NMEA2K_PI,
-                      (float) d.position()/PGN_127245_ANGLE_RES*180.0/NMEA2K_PI);
-        else
-            pc.printf("0x%02x:rudder_process: failed sending %s\r\n",
-                      node_addr,d.name);
-        txled = 0;
-
-        ThisThread::sleep_for(rudder_interval*1000);
+        for(ii = 0 ; ii < 2 ; ii++){
+                txled = 1;
+                d = nmea2k::Pgn127245((uint8_t) ii, // instance
+                                      (uint8_t) PGN_127245_DIRECTION_RIGHT, // direction_order?
+                                      (int16_t) round(cmnd[ii]/180.0*NMEA2K_PI*PGN_127245_ANGLE_RES), // angle_order
+                                      (int16_t) round(-15.0/180.0*NMEA2K_PI*PGN_127245_ANGLE_RES)); // position
+                h = nmea2k::PduHeader(d.p,d.pgn,node_addr,NMEA2K_BROADCAST); // form header
+                m = nmea2k::Frame(h.id(),d.data(),d.dlen); // assemble message
+            
+                //debug("0x%02x:rudder_process: sending data",node_addr);
+                //for (int i=0; i<8; i++){
+                //  debug("%02x",d.data()[i]);
+                //}
+                //debug("\r\n");
+                if (n2k.write(m)) // send it!
+                    pc.printf("0x%02x:rudder_process: sent %s, instance %d, direction_order %d, angle_order %3.1f, position %3.1f\r\n",
+                              node_addr,
+                              d.name,
+                              d.instance(),
+                              d.direction_order(),
+                              (float) d.angle_order()/PGN_127245_ANGLE_RES*180.0/NMEA2K_PI,
+                              (float) d.position()/PGN_127245_ANGLE_RES*180.0/NMEA2K_PI);
+                else
+                    pc.printf("0x%02x:rudder_process: failed sending %s\r\n",
+                              node_addr,d.name);
+                txled = 0;
+                ThisThread::sleep_for(10);
+    }//for(int ii...
+        ThisThread::sleep_for(rudder_interval*100);
     } // while(1)
 
 } // void spektrum_process(void)
