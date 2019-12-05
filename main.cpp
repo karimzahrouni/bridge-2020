@@ -8,12 +8,12 @@
 */
 
 #include "mbed.h"
-
-/*#include <std_msgs/String.h>
+#include "ros_lib_kinetic.h"
+#include <std_msgs/String.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Float64.h>           //NO ROS
 #include <sensor_msgs/NavSatFix.h>
-#include <sensor_msgs/Imu.h> */
+#include <sensor_msgs/Imu.h> 
 #include "nmea2k.h" // use dev branch!
 #include "pgn/iso/Pgn60928.h" // ISO address claim
 #include "pgn/Pgn126993.h" // heartbeat
@@ -36,16 +36,16 @@ unsigned char node_addr = HULL14MOD3_BRIDGE_ADDR;
 
 Thread heartbeat_thread;
 Thread spektrum_thread;
-//Thread ros_thread;
+Thread ros_thread;
 
 
 void heartbeat_process(void);
 void spektrum_process(void);
-//void ros_process(void);
+void ros_process(void);
 
 
 //ROS stuff
-/* ros::NodeHandle  nh;
+ ros::NodeHandle  nh;
 
 std_msgs::String str_msg;
 sensor_msgs::NavSatFix gps_msg;
@@ -55,7 +55,7 @@ ros::Publisher Imu_pub("Imu", &Imu_msg);
 ros::Publisher chatter("chatter", &str_msg); //del
 
 char hello[13] = "hello world!"; //del
-*/
+
 float yaw = 0.0;
 float lat = 0.0;
 float lon = 0.0;
@@ -87,8 +87,8 @@ int main(void)
     // start the various processes
     heartbeat_thread.start(&heartbeat_process);
     spektrum_thread.start(&spektrum_process);
-    //ros_thread.start(&ros_process);
-    /*
+    ros_thread.start(&ros_process);
+    
         pc.printf("0x%02x:main: listening for any pgn\r\n",node_addr);
         while (1) {
 
@@ -121,7 +121,7 @@ int main(void)
             //nh.spinOnce();
             ThisThread::sleep_for(1000);
         } // while(1)
-        *///I forgot how to get data out of pgns..
+        //I forgot how to get data out of pgns..
 }
 
 
@@ -231,7 +231,7 @@ void spektrum_process(void)
 } // void spektrum_process(void)
 
 
-/* void ros_process(void)
+ void ros_process(void)
 {
 
     nh.initNode();
@@ -284,5 +284,5 @@ void spektrum_process(void)
             ThisThread::sleep_for(100);
         }
 
-    } */ // void ros_process(void)
+    }  // void ros_process(void)
 
