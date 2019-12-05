@@ -8,7 +8,7 @@
 */
 
 #include "mbed.h"
-#include "ros_lib_kinetic.h"
+#include <ros_lib_kinetic/ros.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Float64.h>           //NO ROS
@@ -237,7 +237,7 @@ void spektrum_process(void)
     nh.initNode();
     nh.advertise(chatter); //del
     nh.advertise(gps_pub);
-    nh.advertise(imu_pub);
+    nh.advertise(Imu_pub);
 
     while (1) {
         nh.initNode();
@@ -282,7 +282,9 @@ void spektrum_process(void)
             nh.spinOnce();
 
             ThisThread::sleep_for(100);
-        }
+        } // while (1) inner
 
-    }  // void ros_process(void)
+    } // while(1) outer
+
+}  // void ros_process(void)
 
