@@ -28,8 +28,8 @@
 #define BRIDGE_VERSION "14.3.0 PT1"
 
 
-//Serial pc(NC,NC);
 //Serial pc(USBTX,USBRX);
+Serial pc(NC,NC);
 nmea2k::CANLayer n2k(p30,p29); // used for sending nmea2k messages
 Spektrum rx(p13,p14);
 DigitalOut txled(LED1);
