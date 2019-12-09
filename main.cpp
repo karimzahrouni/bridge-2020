@@ -162,7 +162,7 @@ void heartbeat_process(void)
                       d.heartbeat_sequence_counter()); */
             ThisThread::sleep_for(5);
             txled = 0;
-        } else
+        } else;
           /*  pc.printf("0x%02x:heartbeat_thread: failed sending %s\r\n",
                       node_addr,
                       d.name); */
