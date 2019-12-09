@@ -382,7 +382,7 @@ void ros_process(void)
             //RUDDER
             JointState_msg.header.stamp = nh.now();
             JointState_msg.name_length = 6;
-            JointState_msg.name = "Rudder";
+            JointState_msg.name << "Rudder";
             JointState_msg.position = rud_cmd;
             JointState_pub.publish(&JointState_msg);
 
