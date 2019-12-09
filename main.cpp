@@ -231,83 +231,78 @@ void spektrum_process(void)
    
 
 
-void ros_process(void)
-{
-
-
-    while (1) {
-        nh.initNode();
-        nh.advertise(chatter); //del
-        nh.advertise(gps_pub);
-        nh.advertise(Imu_pub);
-        nh.advertise(Imu_pub);
+void ros_process(void){
+  nh.initNode();
+  nh.advertise(chatter); //del
+  nh.advertise(gps_pub);
+  nh.advertise(Imu_pub);
+  nh.advertise(Imu_pub);
         
-        while (1) {
-            //led = !led;
-            str_msg.data = hello; //del
-            chatter.publish( &str_msg ); //del
+  while (1) {
+    //led = !led;
+    str_msg.data = hello; //del
+    chatter.publish( &str_msg ); //del
+    
+    //GPS
+    gps_msg.header.stamp = nh.now();
+    gps_msg.latitude = lat;
+    gps_msg.longitude = lon;
+    gps_msg.altitude = 1.5;
+    gps_pub.publish(&gps_msg);
+    
+    gps_msg.header.frame_id = "boat";
+    gps_msg.latitude = lat;
+    gps_msg.longitude = lon;
+    gps_msg.altitude = 1.5;
 
-            //GPS
-            gps_msg.header.stamp = nh.now();
-            gps_msg.latitude = lat;
-            gps_msg.longitude = lon;
-            gps_msg.altitude = 1.5;
-            gps_pub.publish(&gps_msg);
+    gps_pub.publish(&gps_msg);
 
-            gps_msg.header.frame_id = "boat";
-            gps_msg.latitude = lat;
-            gps_msg.longitude = lon;
-            gps_msg.altitude = 1.5;
+    //IMU
+    Imu_msg.header.stamp = nh.now();
+    Imu_msg.orientation.x = 5;
+    Imu_msg.orientation.y = 10;
+    Imu_msg.orientation.z = yaw;
+    Imu_pub.publish(&Imu_msg);
+    
+    Imu_msg.header.frame_id = "boat";
+    Imu_msg.orientation.x = 5;
+    Imu_msg.orientation.y = 10;
+    Imu_msg.orientation.z = yaw;
+    
+    Imu_pub.publish(&Imu_msg);
 
-            gps_pub.publish(&gps_msg);
+    //RUDDER
+    /*            JointState_msg.header.stamp = nh.now();
+		  JointState_msg.name_length = 6;
+		  JointState_msg.name << "Rudder";
+		  JointState_msg.position = rud_cmd;
+		  JointState_pub.publish(&JointState_msg);
 
-            //IMU
-            Imu_msg.header.stamp = nh.now();
-            Imu_msg.orientation.x = 5;
-            Imu_msg.orientation.y = 10;
-            Imu_msg.orientation.z = yaw;
-            Imu_pub.publish(&Imu_msg);
-
-            Imu_msg.header.frame_id = "boat";
-            Imu_msg.orientation.x = 5;
-            Imu_msg.orientation.y = 10;
-            Imu_msg.orientation.z = yaw;
-
-            Imu_pub.publish(&Imu_msg);
-
-            //RUDDER
-            JointState_msg.header.stamp = nh.now();
-            JointState_msg.name_length = 6;
-            JointState_msg.name << "Rudder";
-            JointState_msg.position = rud_cmd;
-            JointState_pub.publish(&JointState_msg);
-
-            JointState_msg.header.frame_id = "boat";
-            JointState_msg.name_length = 6;
-            JointState_msg.name = "Rudder";
-            JointState_msg.position = rud_cmd;
-
-            JointState_pub.publish(&JointState_msg);
-            
-            //MAST
-            //RUDDER
-            JointState_msg.header.stamp = nh.now();
-            JointState_msg.name_length = 4;
-            JointState_msg.name = "Mast";
-            JointState_msg.position = mst_cmd;
-            JointState_pub.publish(&JointState_msg);
-
-            JointState_msg.header.frame_id = "boat";
-            JointState_msg.name_length = 4;
-            JointState_msg.name = "Mast";
-            JointState_msg.position = mst_cmd;
-
-            JointState_pub.publish(&JointState_msg);
-
-
-            nh.spinOnce();
-
-            ThisThread::sleep_for(100);
-        }
-
-    } // void ros_process(void)*/
+		  JointState_msg.header.frame_id = "boat";
+		  JointState_msg.name_length = 6;
+		  JointState_msg.name = "Rudder";
+		  JointState_msg.position = rud_cmd;
+		  
+		  JointState_pub.publish(&JointState_msg);*/
+    
+    //MAST
+    //RUDDER
+    /*            JointState_msg.header.stamp = nh.now();
+		  JointState_msg.name_length = 4;
+		  JointState_msg.name = "Mast";
+		  JointState_msg.position = mst_cmd;
+		  JointState_pub.publish(&JointState_msg);
+		  
+		  JointState_msg.header.frame_id = "boat";
+		  JointState_msg.name_length = 4;
+		  JointState_msg.name = "Mast";
+		  JointState_msg.position = mst_cmd;
+		  
+		  JointState_pub.publish(&JointState_msg);*/
+    
+    
+    nh.spinOnce();
+    
+    ThisThread::sleep_for(100);
+  } // while(1)
+} // void ros_process(void)*/
