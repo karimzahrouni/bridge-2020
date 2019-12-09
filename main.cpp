@@ -8,10 +8,11 @@
 */
 
 #include "mbed.h"
-
+#include <ros_lib_kinetic/ros.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Float32.h>
-#include <std_msgs/Float64.h>           //NO ROS
+#include <std_msgs/Float64.h>
+#include <sensor_msgs/JointState.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <sensor_msgs/Imu.h>
 #include "nmea2k.h" // use dev branch!
@@ -52,6 +53,7 @@ void ros_process(void);
 std_msgs::String str_msg;
 sensor_msgs::NavSatFix gps_msg;
 sensor_msgs::Imu Imu_msg;
+sensor_msgs::JointState JointState_msg; 
 ros::Publisher gps_pub("NavSatFix", &gps_msg); //put in variable names here
 ros::Publisher Imu_pub("Imu", &Imu_msg);
 ros::Publisher JointState_pub("Rudder", &JointState_msg);
@@ -89,26 +91,30 @@ int main(void)
     ros_thread.start(&ros_process);
 
     pc.printf("0x%02x:main: listening for any pgn\r\n",node_addr);
+    while(1){
     if (n2k.read(f)) {
         h = nmea2k::PduHeader(f.id);
         if ((h.da() == NMEA2K_BROADCAST) || (h.da() == node_addr))
             switch(h.pgn()) {
                                             //cmnd[ii]/180.0*NMEA2K_PI*PGN_127245_ANGLE_RES
-                case 12750:
-                    d = nmea2k::Pgn127250(f.data);
+                case 127250:
+		  {nmea2k::Pgn127250 d(f.data);
                     yaw = (float)d.heading()/PGN_127250_ANGLE_RES;
-                    pc.printf("\r\n yaw: %f \r\n",yaw);
+                    pc.printf("\r\n yaw: %f \r\n",yaw);}
+		  break;
 
                 case 129025:
-                    d = nmea2k::Pgn129025(f.data);
+		  {nmea2k::Pgn129025 d(f.data);
                     lat = (float)d.latitude()/PGN_129025_RES_LATITUDE;
                     lon = (float)d.longitude()/PGN_129025_RES_LONGITUDE;
-                    pc.printf("\r\n lat: %f lon: %f \r\n",lat, lon);
+                    pc.printf("\r\n lat: %f lon: %f \r\n",lat, lon);}
+		  break; 
 
                 case 127508:
-                    d = nmea2k::Pgn127508(f.data);
+		  {nmea2k::Pgn127508 d(f.data);
                     bat = (float)d.current()/PGN_127508_CURRENT_RES;
-                    pc.printf("\r\n battery: %f \r\n",bat);
+                    pc.printf("\r\n battery: %f \r\n",bat);}
+		  break;
 
                 default:
                     pc.printf("0x%02x:main: received unhandled PGN %d\r\n",
@@ -120,18 +126,11 @@ int main(void)
 
     //nh.spinOnce();
     ThisThread::sleep_for(10);
-} // while(1)
-//I forgot how to get data out of pgns..
-} //if(h.pgn()...
+    } // while(1)
+
+} //int main void
 
 
-rxled = 0;
-} // if (n2k.read(f))
-
-//nh.spinOnce();
-ThisThread::sleep_for(10);
-} // while(1)
-} // int main(void)
 
 
 
