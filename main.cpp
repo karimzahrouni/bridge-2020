@@ -18,6 +18,10 @@
 #include "pgn/iso/Pgn60928.h" // ISO address claim
 #include "pgn/Pgn126993.h" // heartbeat
 #include "pgn/Pgn127245.h" // rudder
+#include "pgn/Pgn127250.h"
+#include "pgn/Pgn127508.h"
+#include "pgn/Pgn129025.h"
+#include "pgn/Pgn130306.h"
 #include "Spektrum.h"
 #include "hull14mod3.h"
 
