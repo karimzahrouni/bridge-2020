@@ -12,7 +12,6 @@
 #include <std_msgs/String.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Float64.h>
-#include <sensor_msgs/JointState.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <sensor_msgs/Imu.h>
 #include "nmea2k.h" // use dev branch!
@@ -53,10 +52,12 @@ void ros_process(void);
 std_msgs::String str_msg;
 sensor_msgs::NavSatFix gps_msg;
 sensor_msgs::Imu Imu_msg;
-sensor_msgs::JointState JointState_msg; 
+std_msgs::Float32 rudder_msg;
+std_msgs::Float32 mast_msg; 
 ros::Publisher gps_pub("NavSatFix", &gps_msg); //put in variable names here
 ros::Publisher Imu_pub("Imu", &Imu_msg);
-ros::Publisher JointState_pub("Rudder", &JointState_msg);
+ros::Publisher rudder_pub("Rudder", &rudder_msg);
+ros::Publisher mast_pub("Mast", &mast_msg); 
 ros::Publisher chatter("chatter", &str_msg); //del
 
 char hello[13] = "hello world!"; //del
@@ -236,7 +237,9 @@ void ros_process(void){
   nh.advertise(chatter); //del
   nh.advertise(gps_pub);
   nh.advertise(Imu_pub);
-  nh.advertise(Imu_pub);
+  nh.advertise(rudder_pub);
+  nh.advertise(mast_pub); 
+  
         
   while (1) {
     //led = !led;
@@ -272,34 +275,12 @@ void ros_process(void){
     Imu_pub.publish(&Imu_msg);
 
     //RUDDER
-    /*            JointState_msg.header.stamp = nh.now();
-		  JointState_msg.name_length = 6;
-		  JointState_msg.name << "Rudder";
-		  JointState_msg.position = rud_cmd;
-		  JointState_pub.publish(&JointState_msg);
-
-		  JointState_msg.header.frame_id = "boat";
-		  JointState_msg.name_length = 6;
-		  JointState_msg.name = "Rudder";
-		  JointState_msg.position = rud_cmd;
-		  
-		  JointState_pub.publish(&JointState_msg);*/
+    rudder_msg.data = rud_cmd;
+    rudder_pub.publish(&rudder_msg);
     
     //MAST
-    //RUDDER
-    /*            JointState_msg.header.stamp = nh.now();
-		  JointState_msg.name_length = 4;
-		  JointState_msg.name = "Mast";
-		  JointState_msg.position = mst_cmd;
-		  JointState_pub.publish(&JointState_msg);
-		  
-		  JointState_msg.header.frame_id = "boat";
-		  JointState_msg.name_length = 4;
-		  JointState_msg.name = "Mast";
-		  JointState_msg.position = mst_cmd;
-		  
-		  JointState_pub.publish(&JointState_msg);*/
-    
+    mast_msg.data = mast_cmd;
+    mast_pub.publish(&mast_msg);    
     
     nh.spinOnce();
     
