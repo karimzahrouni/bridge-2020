@@ -18,17 +18,12 @@
 #include "pgn/iso/Pgn60928.h" // ISO address claim
 #include "pgn/Pgn126993.h" // heartbeat
 #include "pgn/Pgn127245.h" // rudder
-#include "pgn/Pgn127250.h"
-#include "pgn/Pgn129025.h"
-#include "pgn/Pgn127508.h"
 #include "Spektrum.h"
 #include "hull14mod3.h"
 
 #define BRIDGE_VERSION "14.3.0 PT1"
 
-// ros::NodeHandle nh;
-// std_msgs::String str_msg;
-// ros::Publisher chatter("chatter", &str_msg);
+
 Serial pc(USBTX,USBRX);
 nmea2k::CANLayer n2k(p30,p29); // used for sending nmea2k messages
 Spektrum rx(p13,p14);
@@ -39,26 +34,27 @@ unsigned char node_addr = HULL14MOD3_BRIDGE_ADDR;
 
 Thread heartbeat_thread;
 Thread spektrum_thread;
-//Thread ros_thread;
+Thread ros_thread;
 
 
 void heartbeat_process(void);
 void spektrum_process(void);
-//void ros_process(void);
+void ros_process(void);
 
 
 //ROS stuff
-/* ros::NodeHandle  nh;
+ ros::NodeHandle  nh;
 
 std_msgs::String str_msg;
 sensor_msgs::NavSatFix gps_msg;
 sensor_msgs::Imu Imu_msg;
 ros::Publisher gps_pub("NavSatFix", &gps_msg); //put in variable names here
 ros::Publisher Imu_pub("Imu", &Imu_msg);
+ros::Publisher JointState_pub("Rudder", &JointState_msg);
 ros::Publisher chatter("chatter", &str_msg); //del
 
 char hello[13] = "hello world!"; //del
-*/
+
 float yaw = 0.0;
 float lat = 0.0;
 float lon = 0.0;
@@ -75,11 +71,6 @@ int main(void)
 {
     nmea2k::Frame f;
     nmea2k::PduHeader h;
-    nmea2k::PgnData d; 
-
-    // TODO startup ROS publisher LATER
-    //nh.initNode();
-    //nh.advertise(chatter);
 
     // startup messages
     pc.printf("0x%02x:main: Bridge node version %s\r\n",node_addr,BRIDGE_VERSION);
@@ -91,46 +82,53 @@ int main(void)
     // start the various processes
     heartbeat_thread.start(&heartbeat_process);
     spektrum_thread.start(&spektrum_process);
-    //ros_thread.start(&ros_process);
+    ros_thread.start(&ros_process);
 
     pc.printf("0x%02x:main: listening for any pgn\r\n",node_addr);
-    while(1){
     if (n2k.read(f)) {
         h = nmea2k::PduHeader(f.id);
         if ((h.da() == NMEA2K_BROADCAST) || (h.da() == node_addr))
             switch(h.pgn()) {
                                             //cmnd[ii]/180.0*NMEA2K_PI*PGN_127245_ANGLE_RES
-                case 127250:
-		  {nmea2k::Pgn127250 d(f.data);
+                case 12750:
+                    d = nmea2k::Pgn127250(f.data);
                     yaw = (float)d.heading()/PGN_127250_ANGLE_RES;
-                    pc.printf("\r\n yaw: %f \r\n",yaw);}
-		    break;
+                    pc.printf("\r\n yaw: %f \r\n",yaw);
 
                 case 129025:
-		  {nmea2k::Pgn129025 d(f.data);
+                    d = nmea2k::Pgn129025(f.data);
                     lat = (float)d.latitude()/PGN_129025_RES_LATITUDE;
                     lon = (float)d.longitude()/PGN_129025_RES_LONGITUDE;
-                    pc.printf("\r\n lat: %f lon: %f \r\n",lat, lon);}
-		    break; 
+                    pc.printf("\r\n lat: %f lon: %f \r\n",lat, lon);
 
                 case 127508:
-		  {nmea2k::Pgn127508 d(f.data);
+                    d = nmea2k::Pgn127508(f.data);
                     bat = (float)d.current()/PGN_127508_CURRENT_RES;
-                    pc.printf("\r\n battery: %f \r\n",bat);}
-		    break; 
+                    pc.printf("\r\n battery: %f \r\n",bat);
 
                 default:
                     pc.printf("0x%02x:main: received unhandled PGN %d\r\n",
                               node_addr,h.pgn());
-            } // switch(h.pgn())
+            } //if(h.pgn()...
 
         rxled = 0;
     } // if (n2k.read(f))
 
     //nh.spinOnce();
     ThisThread::sleep_for(10);
-    } // while(1); 
-} // int main
+} // while(1)
+//I forgot how to get data out of pgns..
+} //if(h.pgn()...
+
+
+rxled = 0;
+} // if (n2k.read(f))
+
+//nh.spinOnce();
+ThisThread::sleep_for(10);
+} // while(1)
+} // int main(void)
+
 
 
 
@@ -337,17 +335,14 @@ void spektrum_process(void)
 void ros_process(void)
 {
 
-    nh.initNode();
-    nh.advertise(chatter); //del
-    nh.advertise(gps_pub);
-    nh.advertise(imu_pub);
 
     while (1) {
         nh.initNode();
         nh.advertise(chatter); //del
         nh.advertise(gps_pub);
         nh.advertise(Imu_pub);
-
+        nh.advertise(Imu_pub);
+        
         while (1) {
             //led = !led;
             str_msg.data = hello; //del
@@ -417,4 +412,3 @@ void ros_process(void)
         }
 
     } // void ros_process(void)*/
-
