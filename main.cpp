@@ -133,10 +133,6 @@ int main(void)
 
 
 
-
-
-
-
 void heartbeat_process(void)
 {
     nmea2k::Frame m;     // holds nmea2k data frame before sending
@@ -169,50 +165,6 @@ void heartbeat_process(void)
     } // while(1)
     //I forgot how to get data out of pgns..
 }
-
-
-
-
-
-
-
-
-
-
-void heartbeat_process(void)
-{
-    nmea2k::Frame m;     // holds nmea2k data frame before sending
-    nmea2k::PduHeader h; // ISO11783-3 header information
-    nmea2k::Pgn126993 d(6000,0);   // for PGN data fields
-    unsigned int heartbeat_interval=60;
-    unsigned char c=0;           // heartbeat sends a heartbeat counter
-
-    pc.printf("0x%02x:heartbeat_thread: starting heartbeat_process\r\n",
-              node_addr);
-
-    while (1) {
-        h = nmea2k::PduHeader(d.p,d.pgn,node_addr,NMEA2K_BROADCAST); // form header
-        d = nmea2k::Pgn126993(heartbeat_interval*100,c++); // form PGN fields
-        m = nmea2k::Frame(h.id(),d.data(),d.dlen); // assemble message
-        if (n2k.write(m)) { // send it!
-            txled = 1;
-            pc.printf("0x%02x:heartbeat_thread: sent %s, %0.0f s, count %d\r\n",
-                      node_addr,
-                      d.name,
-                      (float) d.update_rate()/100.0,
-                      d.heartbeat_sequence_counter());
-            ThisThread::sleep_for(5);
-            txled = 0;
-        } else
-            pc.printf("0x%02x:heartbeat_thread: failed sending %s\r\n",
-                      node_addr,
-                      d.name);
-        ThisThread::sleep_for(heartbeat_interval*1000);
-    } // while(1)
-} // void heartbeat_thread(void)
-
-
-
 
 
 void spektrum_process(void)
@@ -276,63 +228,7 @@ void spektrum_process(void)
 
 } // void spektrum_process(void)
 
-
-void spektrum_process(void)
-{
-    nmea2k::Frame m;     // holds nmea2k data frame before sending
-    nmea2k::PduHeader h; // ISO11783-3 header information
-    nmea2k::Pgn127245 d(0,0,0,0);   // rudder PGN
-    unsigned int spektrum_interval=2;
-    //unsigned char c=0;           // heartbeat sends a heartbeat counter
-
-    pc.printf("0x%02x:spektrum_thread: starting spektrum_process\r\n",
-              node_addr);
-
-    // loop
-    while(1) {
-        // if rx.valid
-        // if manual mode
-        // updated commanded rudder, mainsail
-
-        if (rx.valid) {
-            RC_1 = rx.channel[1];
-            RC_2 = rx.channel[2];     //channels will likely change
-        } else {
-            pc.printf("RCrudder invalid\r\n");
-        }
-
-        rud_cmd = (RC_1/6.77)-5.0;    //puts RC command into degrees
-        mast_cmd = (RC_2/6.77)+39.19;
-
-        pc.printf("rudder: %.1f, mast: %.1f\n", rud_cmd, mast_cmd);
-        // send rudder via nmea
-        // log rudder via ros because our own transmissions are not recorded?
-        // send mainsail via nmea
-        // log mainsail via ros because our own transmissions are not recorded?
-
-        h = nmea2k::PduHeader(d.p,d.pgn,node_addr,NMEA2K_BROADCAST);
-        d = nmea2k::Pgn127245(0, // instance
-                              round(mast_cmd*PGN_127245_ANGLE_RES), // not actually the correct place for mast order
-                              round(rud_cmd*PGN_127245_ANGLE_RES), // rudder command
-                              0.0
-                             );
-        m = nmea2k::Frame(h.id(),d.data(),d.dlen);
-        if (n2k.write(m)) {
-            txled = 1;
-            pc.printf("0x%02x:spektrum_thread: sent %s\r\n",
-                      node_addr,
-                      d.name);
-            ThisThread::sleep_for(5);
-            txled = 0;
-        } else
-            pc.printf("0x%02x:spektrum_thread: failed sending %s\r\n",
-                      node_addr,
-                      d.name);
-
-
-        ThisThread::sleep_for(spektrum_interval*1000); // wait for loop execution time
-    }
-} // void spektrum_process(void)
+   
 
 
 void ros_process(void)
