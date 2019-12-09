@@ -126,7 +126,7 @@ int main(void)
     } // if (n2k.read(f))
 
     //nh.spinOnce();
-    ThisThread::sleep_for(10);
+    ThisThread::sleep_for(100);
     } // while(1)
 
 } //int main void
