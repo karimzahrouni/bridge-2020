@@ -28,7 +28,8 @@
 #define BRIDGE_VERSION "14.3.0 PT1"
 
 
-Serial pc(NC,NC);
+//Serial pc(NC,NC);
+//Serial pc(USBTX,USBRX);
 nmea2k::CANLayer n2k(p30,p29); // used for sending nmea2k messages
 Spektrum rx(p13,p14);
 DigitalOut txled(LED1);
@@ -80,9 +81,9 @@ int main(void)
     nmea2k::PduHeader h;
 
     // startup messages
-    pc.printf("0x%02x:main: Bridge node version %s\r\n",node_addr,BRIDGE_VERSION);
+   /* pc.printf("0x%02x:main: Bridge node version %s\r\n",node_addr,BRIDGE_VERSION);
     pc.printf("0x%02x:main: nmea2k version %s\r\n",node_addr,NMEA2K_VERSION);
-    pc.printf("0x%02x:main: Spektrum version %s\r\n",node_addr,SPEKTRUM_VERSION);
+    pc.printf("0x%02x:main: Spektrum version %s\r\n",node_addr,SPEKTRUM_VERSION); */
 
     // Assert ISO address and wait
 
@@ -91,7 +92,7 @@ int main(void)
     spektrum_thread.start(&spektrum_process);
     ros_thread.start(&ros_process);
 
-    pc.printf("0x%02x:main: listening for any pgn\r\n",node_addr);
+    //pc.printf("0x%02x:main: listening for any pgn\r\n",node_addr);
     while(1){
     if (n2k.read(f)) {
         h = nmea2k::PduHeader(f.id);
@@ -101,26 +102,29 @@ int main(void)
                 case 127250:
 		  {nmea2k::Pgn127250 d(f.data);
                     yaw = (float)d.heading()/PGN_127250_ANGLE_RES;
-                    pc.printf("\r\n yaw: %f \r\n",yaw);}
+                   // pc.printf("\r\n yaw: %f \r\n",yaw);
+		  }
 		  break;
 
                 case 129025:
 		  {nmea2k::Pgn129025 d(f.data);
                     lat = (float)d.latitude()/PGN_129025_RES_LATITUDE;
                     lon = (float)d.longitude()/PGN_129025_RES_LONGITUDE;
-                    pc.printf("\r\n lat: %f lon: %f \r\n",lat, lon);}
+                   // pc.printf("\r\n lat: %f lon: %f \r\n",lat, lon);
+		  }
 		  break; 
 
                 case 127508:
 		  {nmea2k::Pgn127508 d(f.data);
                     bat = (float)d.current()/PGN_127508_CURRENT_RES;
-                    pc.printf("\r\n battery: %f \r\n",bat);}
+                   // pc.printf("\r\n battery: %f \r\n",bat);
+		  }
 		  break;
 
                 default:
-                    pc.printf("0x%02x:main: received unhandled PGN %d\r\n",
-                              node_addr,h.pgn());
-            } //if(h.pgn()...
+		  break;
+                   // pc.printf("0x%02x:main: received unhandled PGN %d\r\n",node_addr,h.pgn());
+            } //switch(h.pgn())
 
         rxled = 0;
     } // if (n2k.read(f))
@@ -142,8 +146,8 @@ void heartbeat_process(void)
     unsigned int heartbeat_interval=60;
     unsigned char c=0;           // heartbeat sends a heartbeat counter
 
-    pc.printf("0x%02x:heartbeat_thread: starting heartbeat_process\r\n",
-              node_addr);
+   /* pc.printf("0x%02x:heartbeat_thread: starting heartbeat_process\r\n",
+              node_addr); */
 
     while (1) {
         h = nmea2k::PduHeader(d.p,d.pgn,node_addr,NMEA2K_BROADCAST); // form header
@@ -151,17 +155,17 @@ void heartbeat_process(void)
         m = nmea2k::Frame(h.id(),d.data(),d.dlen); // assemble message
         if (n2k.write(m)) { // send it!
             txled = 1;
-            pc.printf("0x%02x:heartbeat_thread: sent %s, %0.0f s, count %d\r\n",
+           /* pc.printf("0x%02x:heartbeat_thread: sent %s, %0.0f s, count %d\r\n",
                       node_addr,
                       d.name,
                       (float) d.update_rate()/100.0,
-                      d.heartbeat_sequence_counter());
+                      d.heartbeat_sequence_counter()); */
             ThisThread::sleep_for(5);
             txled = 0;
         } else
-            pc.printf("0x%02x:heartbeat_thread: failed sending %s\r\n",
+          /*  pc.printf("0x%02x:heartbeat_thread: failed sending %s\r\n",
                       node_addr,
-                      d.name);
+                      d.name); */
         ThisThread::sleep_for(heartbeat_interval*1000);
     } // while(1)
     //I forgot how to get data out of pgns..
@@ -174,25 +178,25 @@ void spektrum_process(void)
     nmea2k::Frame m;     // holds nmea2k data frame before sending
     nmea2k::PduHeader h; // ISO11783-3 header information
     nmea2k::Pgn127245 d(0,0,0,0);   // for PGN data fields
-    int rudder_interval = .5; // nominally at a 1 s interval
+    float rudder_interval = .5; // nominally at a 1 s interval
 
-    pc.printf("0x%02x:rudder_process: starting Rudder PGN 127245 tx process\r\n",
-              node_addr);
+  /*  pc.printf("0x%02x:rudder_process: starting Rudder PGN 127245 tx process\r\n",
+              node_addr); */
     while (1) {
 
         //Spektrum part
         if (rx.valid) {
             RC_1 = rx.channel[0];
             RC_2 = rx.channel[7];
-            pc.printf("RC: %f ",RC_1);
+            //pc.printf("RC: %f ",RC_1);
 
         } else {
-            pc.printf("RCrudder invalid\r\n");
+           // pc.printf("RCrudder invalid\r\n");
         }
         //(RC_1/6.77)-40.0;
         cmnd[0] = (RC_1/9)-20.0;
         cmnd[1] = (RC_2/9)-20.0;     //(RC_2/9)-20.0;
-        pc.printf("rudder: %f mast: %f \r\n",cmnd[0],cmnd[1]);
+        //pc.printf("rudder: %f mast: %f \r\n",cmnd[0],cmnd[1]);
         //rud_cmd = RC_1;    //puts RC command into degrees
         //mast_cmd = (RC_2/6.77)+39.19;
         //end spektrum part
@@ -211,20 +215,21 @@ void spektrum_process(void)
             //}
             //debug("\r\n");
             if (n2k.write(m)) // send it!
-                pc.printf("0x%02x:rudder_process: sent %s, instance %d, direction_order %d, angle_order %3.1f, position %3.1f\r\n",
+	      {}
+               /* pc.printf("0x%02x:rudder_process: sent %s, instance %d, direction_order %d, angle_order %3.1f, position %3.1f\r\n",
                           node_addr,
                           d.name,
                           d.instance(),
                           d.direction_order(),
                           (float) d.angle_order()/PGN_127245_ANGLE_RES*180.0/NMEA2K_PI,
-                          (float) d.position()/PGN_127245_ANGLE_RES*180.0/NMEA2K_PI);
+                          (float) d.position()/PGN_127245_ANGLE_RES*180.0/NMEA2K_PI); */
             else
-                pc.printf("0x%02x:rudder_process: failed sending %s\r\n",
-                          node_addr,d.name);
+               /* pc.printf("0x%02x:rudder_process: failed sending %s\r\n",
+                          node_addr,d.name); */
             txled = 0;
             ThisThread::sleep_for(10);
         }//for(int ii...
-        ThisThread::sleep_for(rudder_interval*100);
+        ThisThread::sleep_for((int) round(rudder_interval*100));
     } // while(1)
 
 } // void spektrum_process(void)
