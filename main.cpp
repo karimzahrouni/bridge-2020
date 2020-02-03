@@ -279,14 +279,15 @@ void ros_process(void){
     
     Imu_pub.publish(&Imu_msg);
 
-    //RUDDER
+    //RUDDER /*
     rudder_msg.data = rud_cmd;
     rudder_pub.publish(&rudder_msg);
     
     //MAST
     mast_msg.data = mast_cmd;
     mast_pub.publish(&mast_msg);    
-    
+    */
+	  
     nh.spinOnce();
     
     ThisThread::sleep_for(100);
